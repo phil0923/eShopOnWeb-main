@@ -14,12 +14,29 @@ public class AppIdentityDbContextSeed
         {
             identityDbContext.Database.Migrate();
         }
+        
+       string[] roles = {
+        BlazorShared.Authorization.Constants.Roles.ADMINISTRATORS,
+        BlazorShared.Authorization.Constants.Roles.CUSTOMERS
+        };
 
-        await roleManager.CreateAsync(new IdentityRole(BlazorShared.Authorization.Constants.Roles.ADMINISTRATORS));
+        foreach (var role in roles)
+        {
+            if (!await roleManager.RoleExistsAsync(role))
+            {
+                await roleManager.CreateAsync(new IdentityRole(role));
+            }
+        }
+       var defaultUserEmail = "demouser@microsoft.com";
+       var defaultUser = await userManager.FindByEmailAsync(defaultUserEmail);
+        if (defaultUser == null)
+        {
+            defaultUser = new ApplicationUser { UserName = defaultUserEmail, Email = defaultUserEmail };
+            await userManager.CreateAsync(defaultUser, AuthorizationConstants.DEFAULT_PASSWORD);
+            await userManager.AddToRoleAsync(defaultUser, BlazorShared.Authorization.Constants.Roles.CUSTOMERS);
+        }           
 
-        var defaultUser = new ApplicationUser { UserName = "demouser@microsoft.com", Email = "demouser@microsoft.com" };
-        await userManager.CreateAsync(defaultUser, AuthorizationConstants.DEFAULT_PASSWORD);
-
+        
         string adminUserName = "admin@microsoft.com";
         var adminUser = new ApplicationUser { UserName = adminUserName, Email = adminUserName };
         await userManager.CreateAsync(adminUser, AuthorizationConstants.DEFAULT_PASSWORD);

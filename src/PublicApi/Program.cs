@@ -22,13 +22,19 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MinimalApi.Endpoint.Configurations.Extensions;
 using MinimalApi.Endpoint.Extensions;
+using Infrastructure;
+
+using Microsoft.EntityFrameworkCore;
+using Microsoft.eShopWeb.ApplicationCore.Catalog.Abstractions;
+
 
 var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.UseUrls("http://localhost:5099");
 
 builder.Services.AddEndpoints();
 
 // Use to force loading of appsettings.json of test project
-builder.Configuration.AddConfigurationFile("appsettings.test.json");
+// builder.Configuration.AddConfigurationFile("appsettings.test.json");
 builder.Logging.AddConsole();
 
 Microsoft.eShopWeb.Infrastructure.Dependencies.ConfigureServices(builder.Configuration, builder.Services);
@@ -121,29 +127,34 @@ builder.Services.AddSwaggerGen(c =>
                     }
             });
 });
-
+builder.Services.AddCatalogProvider(builder.Configuration);
 var app = builder.Build();
 
 app.Logger.LogInformation("PublicApi App created...");
 
 app.Logger.LogInformation("Seeding Database...");
 
-using (var scope = app.Services.CreateScope())
-{
-    var scopedProvider = scope.ServiceProvider;
-    try
-    {
-        var catalogContext = scopedProvider.GetRequiredService<CatalogContext>();
-        await CatalogContextSeed.SeedAsync(catalogContext, app.Logger);
+var skipSeed = builder.Configuration.GetValue<bool>("SkipSeed");
 
-        var userManager = scopedProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        var roleManager = scopedProvider.GetRequiredService<RoleManager<IdentityRole>>();
-        var identityContext = scopedProvider.GetRequiredService<AppIdentityDbContext>();
-        await AppIdentityDbContextSeed.SeedAsync(identityContext, userManager, roleManager);
-    }
-    catch (Exception ex)
+if (!skipSeed)
+{
+    using (var scope = app.Services.CreateScope())
     {
-        app.Logger.LogError(ex, "An error occurred seeding the DB.");
+        var scopedProvider = scope.ServiceProvider;
+        try
+        {
+            var catalogContext = scopedProvider.GetRequiredService<CatalogContext>();
+            await CatalogContextSeed.SeedAsync(catalogContext, app.Logger);
+
+            var userManager = scopedProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var roleManager = scopedProvider.GetRequiredService<RoleManager<IdentityRole>>();
+            var identityContext = scopedProvider.GetRequiredService<AppIdentityDbContext>();
+            await AppIdentityDbContextSeed.SeedAsync(identityContext, userManager, roleManager);
+        }
+        catch (Exception ex)
+        {
+            app.Logger.LogError(ex, "An error occurred seeding the DB.");
+        }
     }
 }
 

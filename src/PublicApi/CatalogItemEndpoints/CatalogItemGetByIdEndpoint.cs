@@ -1,17 +1,18 @@
-﻿using System.Threading.Tasks;
+﻿using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.eShopWeb.ApplicationCore.Entities;
-using Microsoft.eShopWeb.ApplicationCore.Interfaces;
 using MinimalApi.Endpoint;
+using Microsoft.eShopWeb.ApplicationCore.Catalog.Abstractions;
+using Microsoft.eShopWeb.ApplicationCore.Interfaces;
 
 namespace Microsoft.eShopWeb.PublicApi.CatalogItemEndpoints;
 
 /// <summary>
-/// Get a Catalog Item by Id
+/// Get a Catalog Item by Id via ICatalogFacade
 /// </summary>
-public class CatalogItemGetByIdEndpoint : IEndpoint<IResult, GetByIdCatalogItemRequest, IRepository<CatalogItem>>
+public class CatalogItemGetByIdEndpoint : IEndpoint<IResult, GetByIdCatalogItemRequest, ICatalogFacade>
 {
     private readonly IUriComposer _uriComposer;
 
@@ -22,33 +23,35 @@ public class CatalogItemGetByIdEndpoint : IEndpoint<IResult, GetByIdCatalogItemR
 
     public void AddRoute(IEndpointRouteBuilder app)
     {
-        app.MapGet("api/catalog-items/{catalogItemId}",
-            async (int catalogItemId, IRepository<CatalogItem> itemRepository) =>
+        app.MapGet("api/catalog-items/{catalogItemId:int}",
+            async (int catalogItemId, ICatalogFacade catalog, IUriComposer uriComposer, CancellationToken ct) =>
             {
-                return await HandleAsync(new GetByIdCatalogItemRequest(catalogItemId), itemRepository);
+                var ep = new CatalogItemGetByIdEndpoint(uriComposer);
+                return await ep.HandleAsync(new GetByIdCatalogItemRequest(catalogItemId), catalog);
             })
-            .Produces<GetByIdCatalogItemResponse>()
-            .WithTags("CatalogItemEndpoints");
+           .Produces<GetByIdCatalogItemResponse>()
+           .WithTags("CatalogItemEndpoints");
     }
 
-    public async Task<IResult> HandleAsync(GetByIdCatalogItemRequest request, IRepository<CatalogItem> itemRepository)
+    // NB: MinimalApi.Endpoint forventer netop denne signatur
+    public async Task<IResult> HandleAsync(GetByIdCatalogItemRequest request, ICatalogFacade catalog)
     {
         var response = new GetByIdCatalogItemResponse(request.CorrelationId());
 
-        var item = await itemRepository.GetByIdAsync(request.CatalogItemId);
-        if (item is null)
-            return Results.NotFound();
+        var p = await catalog.GetProductByIdAsync(request.CatalogItemId);
+        if (p is null) return Results.NotFound();
 
         response.CatalogItem = new CatalogItemDto
         {
-            Id = item.Id,
-            CatalogBrandId = item.CatalogBrandId,
-            CatalogTypeId = item.CatalogTypeId,
-            Description = item.Description,
-            Name = item.Name,
-            PictureUri = _uriComposer.ComposePicUri(item.PictureUri),
-            Price = item.Price
+            Id = p.Id,
+            CatalogBrandId = p.BrandId,
+            CatalogTypeId = p.TypeId,
+            Description = p.Description,
+            Name = p.Name,
+            PictureUri = _uriComposer.ComposePicUri(p.PictureUri ?? string.Empty),
+            Price = p.Price
         };
+
         return Results.Ok(response);
     }
 }

@@ -1,45 +1,37 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
-using AutoMapper;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.eShopWeb.ApplicationCore.Entities;
-using Microsoft.eShopWeb.ApplicationCore.Interfaces;
 using MinimalApi.Endpoint;
+using Microsoft.eShopWeb.ApplicationCore.Catalog.Abstractions;
 
 namespace Microsoft.eShopWeb.PublicApi.CatalogTypeEndpoints;
 
 /// <summary>
-/// List Catalog Types
+/// List Catalog Types via ICatalogFacade
 /// </summary>
-public class CatalogTypeListEndpoint : IEndpoint<IResult, IRepository<CatalogType>>
+public class CatalogTypeListEndpoint : IEndpoint<IResult, ICatalogFacade>
 {
-    private readonly IMapper _mapper;
-
-    public CatalogTypeListEndpoint(IMapper mapper)
-    {
-        _mapper = mapper;
-    }
-
     public void AddRoute(IEndpointRouteBuilder app)
     {
         app.MapGet("api/catalog-types",
-            async (IRepository<CatalogType> catalogTypeRepository) =>
+            async (ICatalogFacade catalog) =>
             {
-                return await HandleAsync(catalogTypeRepository);
+                return await HandleAsync(catalog);
             })
-            .Produces<ListCatalogTypesResponse>()
-            .WithTags("CatalogTypeEndpoints");
+           .Produces<ListCatalogTypesResponse>()
+           .WithTags("CatalogTypeEndpoints");
     }
 
-    public async Task<IResult> HandleAsync(IRepository<CatalogType> catalogTypeRepository)
+    public async Task<IResult> HandleAsync(ICatalogFacade catalog)
     {
         var response = new ListCatalogTypesResponse();
+        var types = await catalog.GetTypesAsync();
 
-        var items = await catalogTypeRepository.ListAsync();
-
-        response.CatalogTypes.AddRange(items.Select(_mapper.Map<CatalogTypeDto>));
+        response.CatalogTypes = types
+            .Select(t => new CatalogTypeDto { Id = t.Id, Name = t.Name })
+            .ToList();
 
         return Results.Ok(response);
     }

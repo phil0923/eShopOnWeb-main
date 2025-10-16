@@ -3,6 +3,8 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.eShopWeb.Web.Extensions;
 using Microsoft.eShopWeb.Web.ViewModels;
+using Microsoft.eShopWeb.ApplicationCore.Catalog.Entities;
+using Microsoft.eShopWeb.ApplicationCore.Catalog.Specifications;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace Microsoft.eShopWeb.Web.Services;

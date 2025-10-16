@@ -3,6 +3,8 @@ using Microsoft.eShopWeb.ApplicationCore.Entities;
 using Microsoft.eShopWeb.ApplicationCore.Interfaces;
 using Microsoft.eShopWeb.Web.Interfaces;
 using Microsoft.eShopWeb.Web.ViewModels;
+using Microsoft.eShopWeb.ApplicationCore.Catalog.Entities;
+using Microsoft.eShopWeb.ApplicationCore.Catalog.Specifications;
 
 namespace Microsoft.eShopWeb.Web.Services;
 

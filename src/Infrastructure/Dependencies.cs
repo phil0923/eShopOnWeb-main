@@ -18,8 +18,14 @@ namespace Microsoft.eShopWeb.Infrastructure
             }
             else
             {
+                var cs = configuration.GetConnectionString("CatalogConnection");
                 services.AddDbContext<CatalogContext>(c =>
-                    c.UseSqlServer(configuration.GetConnectionString("CatalogConnection")));
+                    c.UseSqlServer(cs, sql =>
+                    {
+                        sql.MigrationsAssembly("CatalogMigrations");
+                        sql.MigrationsHistoryTable("__EFMigrationsHistory_Catalog");
+                    }));
+
             }
 
             return services;

@@ -2,19 +2,17 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-
 using MinimalApi.Endpoint.Extensions;
-
-using Microsoft.eShopWeb.PublicApi;                              // MappingProfile (hvis du har den)
-using Microsoft.eShopWeb.Infrastructure;                         // AddCatalogDb, CatalogSettings, UriComposer
-using Microsoft.eShopWeb.Infrastructure.Data;                    // CatalogContext, CatalogContextSeed
-using Microsoft.eShopWeb.ApplicationCore.Interfaces;             // IUriComposer
-using Microsoft.eShopWeb.ApplicationCore.Catalog.Abstractions;   // ICatalogFacade
-using Infrastructure.Catalog;                                     // CatalogFacadeEf
+using Microsoft.eShopWeb.PublicApi;
+using Microsoft.eShopWeb.Infrastructure;
+using Microsoft.eShopWeb.Infrastructure.Data;
+using Microsoft.eShopWeb.ApplicationCore.Interfaces;
+using Microsoft.eShopWeb.ApplicationCore.Catalog.Abstractions;
+using Infrastructure.Catalog;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Kør kun HTTP i dev
 builder.WebHost.UseUrls("http://localhost:5099");
 
 // Minimal logging
@@ -22,12 +20,11 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
 // --- Services ---
-builder.Services.AddEndpoints();                    // scanner MinimalApi endpoints (IEndpoint)
+builder.Services.AddEndpoints();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// AutoMapper (hvis MappingProfile findes i PublicApi)
 builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
 
 // Catalog DB (InMemory når UseOnlyInMemoryDatabase=true)
@@ -50,6 +47,8 @@ using (var scope = app.Services.CreateScope())
 {
     var sp = scope.ServiceProvider;
     var ctx = sp.GetRequiredService<CatalogContext>();
+
+    await ctx.Database.MigrateAsync();
     try
     {
         await CatalogContextSeed.SeedAsync(ctx, app.Logger);

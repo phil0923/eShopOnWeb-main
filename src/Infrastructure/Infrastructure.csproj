@@ -23,5 +23,13 @@
 	<ItemGroup>
 		<Folder Include="Data\Migrations\" />
 		<Compile Remove="Data\Queries\BasketQueryService.cs" />
+		<Compile Remove="Data\Config\Basket*.cs" />
+		<Compile Remove="Data\Config\Order*.cs" />
+	</ItemGroup>
+	<ItemGroup>
+		<Compile Remove="Data\Migrations\Catalog\**\*.cs" />
+		<Compile Include="Data\Migrations\Catalog\2025*.cs" />
+		<Compile Include="Data\Migrations\Catalog\CatalogContextModelSnapshot.cs" />
+		<Compile Remove="Data\Queries\**\*.cs" />
 	</ItemGroup>
 </Project>

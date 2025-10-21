@@ -1,24 +1,22 @@
-﻿using System.Reflection;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.eShopWeb.ApplicationCore.Catalog.Entities;
-using Microsoft.eShopWeb.ApplicationCore.Entities;
-using Microsoft.eShopWeb.ApplicationCore.Entities.BasketAggregate;
-using Microsoft.eShopWeb.ApplicationCore.Entities.OrderAggregate;
+using Microsoft.eShopWeb.Infrastructure.Data.Config;
 
-namespace Microsoft.eShopWeb.Infrastructure.Data;
-
-public class CatalogContext : DbContext
+namespace Microsoft.eShopWeb.Infrastructure.Data
 {
-    #pragma warning disable CS8618 // Required by Entity Framework
-    public CatalogContext(DbContextOptions<CatalogContext> options) : base(options) {}
-
-    public DbSet<CatalogItem> CatalogItems { get; set; }
-    public DbSet<CatalogBrand> CatalogBrands { get; set; }
-    public DbSet<CatalogType> CatalogTypes { get; set; }
-
-    protected override void OnModelCreating(ModelBuilder builder)
+    public class CatalogContext : DbContext
     {
-        base.OnModelCreating(builder);
-        builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+        public CatalogContext(DbContextOptions<CatalogContext> options) : base(options) { }
+
+        public DbSet<CatalogItem> CatalogItems => Set<CatalogItem>();
+        public DbSet<CatalogBrand> CatalogBrands => Set<CatalogBrand>();
+        public DbSet<CatalogType> CatalogTypes => Set<CatalogType>();
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.ApplyConfiguration(new CatalogItemConfiguration());
+            modelBuilder.ApplyConfiguration(new CatalogBrandConfiguration());
+            modelBuilder.ApplyConfiguration(new CatalogTypeConfiguration());
+        }
     }
 }

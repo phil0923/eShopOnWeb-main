@@ -27,7 +27,7 @@ namespace Microsoft.eShopWeb.ApplicationCore.Catalog.Abstractions
     public interface ICatalogFacade
     {
         Task<PagedResult<ProductDTO>> GetProductsAsync(
-            string? search, int? brandId, int? typeId,
+            int? brandId, int? typeId,
             int pageIndex, int pageSize,
             CancellationToken ct = default);
 

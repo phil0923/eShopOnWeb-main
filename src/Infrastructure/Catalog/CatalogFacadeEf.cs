@@ -20,7 +20,7 @@ namespace Infrastructure.Catalog
         }
 
         public async Task<PagedResult<ProductDTO>> GetProductsAsync(
-            string? search, int? brandId, int? typeId,
+            int? brandId, int? typeId,
             int pageIndex, int pageSize,
             CancellationToken ct = default)
         {
@@ -29,11 +29,6 @@ namespace Infrastructure.Catalog
 
             var query = _db.CatalogItems.AsNoTracking().AsQueryable();
 
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var term = search.Trim();
-                query = query.Where(p => p.Name.Contains(term));
-            }
             if (brandId is { } b) query = query.Where(p => p.CatalogBrandId == b);
             if (typeId  is { } t) query = query.Where(p => p.CatalogTypeId  == t);
 

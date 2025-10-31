@@ -11,9 +11,6 @@ using Microsoft.eShopWeb.ApplicationCore.Interfaces;
 
 namespace Microsoft.eShopWeb.PublicApi.CatalogItemEndpoints;
 
-/// <summary>
-/// List Catalog Items (paged) via ICatalogFacade
-/// </summary>
 public class CatalogItemListPagedEndpoint : IEndpoint<IResult, ListPagedCatalogItemRequest, ICatalogFacade>
 {
     private readonly IUriComposer _uriComposer;
@@ -50,7 +47,6 @@ public class CatalogItemListPagedEndpoint : IEndpoint<IResult, ListPagedCatalogI
         var response = new ListPagedCatalogItemResponse(request.CorrelationId());
 
         var page = await catalog.GetProductsAsync(
-            search: null,
             brandId: request.CatalogBrandId,
             typeId: request.CatalogTypeId,
             pageIndex: request.PageIndex,

@@ -6,34 +6,48 @@ using MinimalApi.Endpoint.Extensions;
 using Microsoft.eShopWeb.PublicApi;
 using Microsoft.eShopWeb.Infrastructure;
 using Microsoft.eShopWeb.Infrastructure.Data;
-using Microsoft.eShopWeb.ApplicationCore.Interfaces;
 using Microsoft.eShopWeb.ApplicationCore.Catalog.Abstractions;
 using Infrastructure.Catalog;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.eShopWeb.PublicApi.Catalog;
+using Microsoft.eShopWeb.ApplicationCore.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.UseUrls("http://localhost:5099");
 
-// Minimal logging
+// Logging
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
-// --- Services ---
+// MVC / Swagger
 builder.Services.AddEndpoints();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
 builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
 
-// Catalog DB (InMemory når UseOnlyInMemoryDatabase=true)
-builder.Services.AddCatalogDb(builder.Configuration);
-
-// Facade (EF-implementation)
-builder.Services.AddScoped<ICatalogFacade, CatalogFacadeEf>();
 builder.Services.AddSingleton<IUriComposer, NoOpUriComposer>();
 
+var provider = builder.Configuration.GetValue<string>("CatalogProvider") ?? "Ef";
+
+if (provider.Equals("Ef", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddCatalogDb(builder.Configuration);
+    builder.Services.AddScoped<ICatalogFacade, CatalogFacadeEf>();
+}
+else if (provider.Equals("Http", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.Configure<HttpCatalogFacade.CatalogServiceOptions>(
+        builder.Configuration.GetSection("CatalogService"));
+
+    builder.Services.AddHttpClient<HttpCatalogFacade>();
+    builder.Services.AddScoped<ICatalogFacade, HttpCatalogFacade>();
+}
+else
+{
+    throw new InvalidOperationException($"Unknown CatalogProvider '{provider}'. Use 'Ef' or 'Http'.");
+}
 
 var app = builder.Build();
 
@@ -43,10 +57,11 @@ if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
 }
-using (var scope = app.Services.CreateScope())
+
+if (provider.Equals("Ef", StringComparison.OrdinalIgnoreCase))
 {
-    var sp = scope.ServiceProvider;
-    var ctx = sp.GetRequiredService<CatalogContext>();
+    using var scope = app.Services.CreateScope();
+    var ctx = scope.ServiceProvider.GetRequiredService<CatalogContext>();
 
     await ctx.Database.MigrateAsync();
     try
@@ -63,10 +78,10 @@ using (var scope = app.Services.CreateScope())
 app.UseSwagger();
 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "PublicApi v1"));
 
-// Health + endpoints
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+// Endpoints
+app.MapGet("/health", () => Results.Ok(new { status = "ok", provider }));
 app.MapEndpoints();
 app.MapControllers();
 
-app.Logger.LogInformation("PublicApi listening on http://localhost:5099");
+app.Logger.LogInformation("PublicApi listening on http://localhost:5099 (provider={Provider})", provider);
 app.Run();

@@ -17,17 +17,15 @@ namespace Microsoft.eShopWeb.Web.Controllers;
 public class UserController : ControllerBase
 {
     private readonly ITokenClaimsService _tokenClaimsService;
-    private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly ILogger<UserController> _logger;
     private readonly IMemoryCache _cache;
 
-    public UserController(ITokenClaimsService tokenClaimsService,
-                          SignInManager<ApplicationUser> signInManager,
+    public UserController(
+                        
                           ILogger<UserController> logger,
                           IMemoryCache cache)
     {
-        _tokenClaimsService = tokenClaimsService;
-        _signInManager = signInManager;
+       
         _logger = logger;
         _cache = cache;
     }
@@ -44,17 +42,31 @@ public class UserController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> Logout()
     {
-        await _signInManager.SignOutAsync();
+        // 1. Remove the local cookie so the user is signed out in this app
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-        var userId = _signInManager.Context.User.Claims.First(c => c.Type == ClaimTypes.Name);
-        var identityKey = _signInManager.Context.Request.Cookies[ConfigureCookieSettings.IdentifierCookieName];
-        _cache.Set($"{userId.Value}:{identityKey}", identityKey, new MemoryCacheEntryOptions
+
+        // 2. (Optional) If you want to inform the Identity service to invalidate the JWT
+        // var jwt = HttpContext.Session.GetString("JWT");
+        // if (!string.IsNullOrEmpty(jwt))
+        // {
+        //     await _identityServiceCaller.LogoutAsync(jwt); // implement this in your identity service if needed
+        // }
+
+        // 3. (Optional) Manage your cache entry if you still use that system
+        var userId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+        var identityKey = Request.Cookies[ConfigureCookieSettings.IdentifierCookieName];
+        if (!string.IsNullOrEmpty(userId) && !string.IsNullOrEmpty(identityKey))
         {
-            AbsoluteExpiration = DateTime.Now.AddMinutes(ConfigureCookieSettings.ValidityMinutesPeriod)
-        });
+            _cache.Set($"{userId}:{identityKey}", identityKey, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpiration = DateTimeOffset.Now.AddMinutes(ConfigureCookieSettings.ValidityMinutesPeriod)
+            });
+        }
 
         _logger.LogInformation("User logged out.");
-        return Ok();
+
+        // 4. Redirect to home or return OK
+        return Ok(new { message = "Logged out successfully" });
     }
 
     private async Task<UserInfo> CreateUserInfo(ClaimsPrincipal claimsPrincipal)

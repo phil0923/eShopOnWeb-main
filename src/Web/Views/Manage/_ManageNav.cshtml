@@ -1,6 +1,21 @@
-﻿@inject SignInManager<ApplicationUser> SignInManager
+﻿@using Microsoft.eShopWeb.Web.Interfaces
+@inject IIdentityServiceCaller identityServiceCaller;
 @{
-    var hasExternalLogins = (await SignInManager.GetExternalAuthenticationSchemesAsync()).Any();
+
+	bool hasExternalLogins = false;
+	try
+	{
+		var response = await identityServiceCaller.GetExternalLoginsAsync();
+
+        if (response!=null)
+        {
+            hasExternalLogins = response?.OtherLogins?.Any() == true;
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error fetching external logins: {ex.Message}");
+    }
 }
 
 <ul class="nav nav-pills nav-stacked">

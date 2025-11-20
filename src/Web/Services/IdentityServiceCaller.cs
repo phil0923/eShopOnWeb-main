@@ -36,8 +36,6 @@ public class IdentityServiceCaller : IIdentityServiceCaller
 
     private void AddJwtHeader()
     {
-        
-        
         var jwt = _contextAccessor.HttpContext?.Request.Cookies["JWT"];
         if (string.IsNullOrEmpty(jwt))
         {
@@ -48,7 +46,6 @@ public class IdentityServiceCaller : IIdentityServiceCaller
         jwt = jwt.Replace(" ", "").Trim('"').Trim();
         jwt = new string(jwt.Where(c => !char.IsControl(c)).ToArray());
 
-
         if (!jwt.Contains("."))
         {
             _logger.LogWarning("Malformed JWT detected. Skipping Authorization header attachment.");
@@ -56,8 +53,6 @@ public class IdentityServiceCaller : IIdentityServiceCaller
         }
         _logger.LogInformation($"[CLEANED JWT]: {jwt.Substring(0, Math.Min(40, jwt.Length))}...");
        
-    
-
         var currentAuth = _httpClient.DefaultRequestHeaders.Authorization?.Parameter;
         if (currentAuth != jwt)
         {
@@ -149,8 +144,6 @@ public class IdentityServiceCaller : IIdentityServiceCaller
     {
         try
         {
-
-
             _logger.LogInformation("Sending login request to {url}", _httpClient.BaseAddress);
             var response = await _httpClient.PostAsJsonAsync("auth/login", new UserLoginDTO { Email = email, Password = password });
             if (!response.IsSuccessStatusCode)
@@ -159,8 +152,6 @@ public class IdentityServiceCaller : IIdentityServiceCaller
                 return null;
             }
 
-
-
             var content = await response.Content.ReadFromJsonAsync<LoginResponseDTO>();
 
             if (string.IsNullOrEmpty(content?.Token))
@@ -168,8 +159,6 @@ public class IdentityServiceCaller : IIdentityServiceCaller
                 _logger.LogWarning("IdentityService returned no token for {email}", email);
                 return null;
             }
-
-        
 
             return content;
         }
@@ -218,6 +207,7 @@ public class IdentityServiceCaller : IIdentityServiceCaller
 
     public async Task<bool> UpdateProfileAsync(UpdateProfileDTO dto)
     {
+        AddJwtHeader();
         try
         {
 

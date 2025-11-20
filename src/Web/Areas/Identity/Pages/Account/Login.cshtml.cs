@@ -109,6 +109,7 @@ public class LoginModel : PageModel
                 ModelState.AddModelError(string.Empty, "Invalid login attempt.");
                 return Page();
             }
+
             // If we get here — successful login
             _logger.LogInformation("User logged in successfully via IdentityService.");
 
@@ -126,8 +127,6 @@ public class LoginModel : PageModel
                 principal,
                 new AuthenticationProperties { IsPersistent = true });
 
-            //// Keeping JWT for microservice calls
-            //HttpContext.Session.SetString("JWT", result.Token);
 
             Response.Cookies.Append("JWT", result.Token, new CookieOptions
             {

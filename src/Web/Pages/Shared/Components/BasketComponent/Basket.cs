@@ -12,17 +12,28 @@ namespace Microsoft.eShopWeb.Web.Pages.Shared.Components.BasketComponent;
 public class Basket : ViewComponent
 {
     private readonly IBasketViewModelService _basketService;
-    private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly ILogger<Basket> _logger;    
 
-    public Basket(IBasketViewModelService basketService,
-                    SignInManager<ApplicationUser> signInManager)
+    public Basket(IBasketViewModelService basketService,ILogger<Basket> logger)
     {
         _basketService = basketService;
-        _signInManager = signInManager;
+        _logger = logger;
     }
 
     public async Task<IViewComponentResult> InvokeAsync()
     {
+        // Handle missing user safely
+        var userName = HttpContext.User.Identity?.Name;
+
+        if (string.IsNullOrEmpty(userName))
+        {
+            _logger.LogDebug("No user logged in. Returning empty basket view.");
+            return View(new BasketComponentViewModel
+            {
+                ItemsCount = 0
+            });
+        }
+
         var vm = new BasketComponentViewModel
         {
             ItemsCount = await CountTotalBasketItems()
@@ -32,14 +43,21 @@ public class Basket : ViewComponent
 
     private async Task<int> CountTotalBasketItems()
     {
-        if (_signInManager.IsSignedIn(HttpContext.User))
+        if (HttpContext.User.Identity?.IsAuthenticated == true)
         {
-            Guard.Against.Null(User?.Identity?.Name, nameof(User.Identity.Name));
-            return await _basketService.CountTotalBasketItems(User.Identity.Name);
+            var userName = HttpContext.User.Identity?.Name;
+
+            if (string.IsNullOrEmpty(userName))
+            {
+                _logger.LogDebug("Authenticated user with no name. Returning 0 items.");
+                return 0;
+            }
+           
+            return await _basketService.CountTotalBasketItems(userName);
         }
 
         string? anonymousId = GetAnnonymousIdFromCookie();
-        if (anonymousId == null)
+        if (string.IsNullOrEmpty(anonymousId))
             return 0;
 
         return await _basketService.CountTotalBasketItems(anonymousId);
